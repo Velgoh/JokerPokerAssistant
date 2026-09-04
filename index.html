@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joker Poker & High-Low Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation Bar -->
+        <header class="app-header">
+            <div class="brand">
+                <div class="brand-icon">🃏</div>
+                <div>
+                    <h1>Joker Poker</h1>
+                    <span class="sub-brand">Video Poker & High-Low Assistant</span>
+                </div>
+            </div>
+            <div class="server-status" id="serverStatusBadge" title="Server Connection Status">
+                <span class="status-dot online"></span>
+                <span class="status-text" id="statusText">Checking...</span>
+            </div>
+        </header>
+
+        <!-- Main Tab Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="phase1">
+                <span class="tab-icon">🎴</span>
+                <span>5-Card Draw</span>
+            </button>
+            <button class="tab-btn" data-tab="phase2">
+                <span class="tab-icon">🎲</span>
+                <span>High & Low</span>
+            </button>
+            <button class="tab-btn" data-tab="logs">
+                <span class="tab-icon">📜</span>
+                <span>Logs & History</span>
+            </button>
+            <button class="tab-btn" data-tab="rules">
+                <span class="tab-icon">ℹ️</span>
+                <span>Paytable</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="tab-content">
+            <!-- ========================================================= -->
+            <!-- PHASE 1: 5-CARD DRAW POKER -->
+            <!-- ========================================================= -->
+            <section id="phase1" class="tab-pane active">
+                <!-- Strategy Mode Switcher -->
+                <div class="section-card strategy-card">
+                    <div class="strategy-card-header">
+                        <div class="strategy-title-wrap">
+                            <span class="strategy-badge-icon">⚡</span>
+                            <div>
+                                <h2 class="strategy-heading">Strategy Mode</h2>
+                                <span class="strategy-subheading">Choose prioritization: Qualify for High &amp; Low vs Maximize average coins</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="strategy-toggle-bar" role="group" aria-label="Strategy Mode">
+                        <button type="button" id="stratWinRateBtn" class="strategy-mode-btn active" data-strategy="win_rate">
+                            <span class="strat-btn-icon">🎯</span>
+                            <div class="strat-btn-info">
+                                <div class="strat-btn-title-row">
+                                    <strong class="strat-btn-title">Max Win Rate</strong>
+                                    <span class="strat-pill default">DEFAULT</span>
+                                </div>
+                                <span class="strat-btn-sub">High &amp; Low Qualifier (Two Pair+)</span>
+                            </div>
+                        </button>
+                        <button type="button" id="stratEvBtn" class="strategy-mode-btn" data-strategy="ev">
+                            <span class="strat-btn-icon">💰</span>
+                            <div class="strat-btn-info">
+                                <div class="strat-btn-title-row">
+                                    <strong class="strat-btn-title">Max Reward</strong>
+                                    <span class="strat-pill ev-pill">EV</span>
+                                </div>
+                                <span class="strat-btn-sub">Maximize Coin Payouts (High Variance)</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Active Hand Card Slots -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Your Current Hand (5 Cards)</h2>
+                        <div class="hand-actions">
+                            <button id="clearHandBtn" class="btn btn-secondary btn-sm" title="Clear all cards">Clear</button>
+                            <button id="randomHandBtn" class="btn btn-secondary btn-sm" title="Deal random 5 cards">Random</button>
+                        </div>
+                    </div>
+
+                    <div class="hand-slots" id="handSlots">
+                        <!-- 5 Interactive Slots populated by JS -->
+                    </div>
+
+                    <div class="hand-instruction" id="handInstruction">
+                        Tap 5 cards from the selector below to analyze best move
+                    </div>
+                </div>
+
+                <!-- Card Selector Grid -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Card Selector</h2>
+                        <div class="preset-selector">
+                            <select id="presetSelect" class="form-select btn-sm">
+                                <option value="">Load Preset Hand...</option>
+                                <option value="royal_draw">4 to Royal Flush</option>
+                                <option value="pair_vs_flush">Pair vs Flush Draw (Strat Demo)</option>
+                                <option value="five_kind_draw">Quads + Joker</option>
+                                <option value="straight_draw">Open-Ended Straight Draw</option>
+                                <option value="flush_draw">4 to Flush</option>
+                                <option value="full_house">Pat Full House</option>
+                                <option value="two_pair">Two Pair</option>
+                                <option value="trips">Three of a Kind</option>
+                                <option value="random">Random Hand</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="card-matrix">
+                        <!-- Hearts Row -->
+                        <div class="matrix-row suit-h">
+                            <span class="suit-badge red">♥</span>
+                            <div class="matrix-cards" data-suit="H"></div>
+                        </div>
+                        <!-- Diamonds Row -->
+                        <div class="matrix-row suit-d">
+                            <span class="suit-badge red">♦</span>
+                            <div class="matrix-cards" data-suit="D"></div>
+                        </div>
+                        <!-- Clubs Row -->
+                        <div class="matrix-row suit-c">
+                            <span class="suit-badge black">♣</span>
+                            <div class="matrix-cards" data-suit="C"></div>
+                        </div>
+                        <!-- Spades Row -->
+                        <div class="matrix-row suit-s">
+                            <span class="suit-badge black">♠</span>
+                            <div class="matrix-cards" data-suit="S"></div>
+                        </div>
+                        <!-- Wildcard Joker Row -->
+                        <div class="matrix-row joker-row">
+                            <span class="suit-badge gold">⭐</span>
+                            <button class="selector-card joker-card" id="jokerBtn" data-card="JK">
+                                <span class="joker-icon">🃏</span>
+                                <span class="joker-label">JOKER (Wild)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendation & Analysis Section -->
+                <div id="analysisSection" class="section-card recommendation-card hidden">
+                    <div class="recommendation-hero">
+                        <div class="rec-badge" id="recBadge">OPTIMAL STRATEGY</div>
+                        <div class="rec-title" id="recActionText">HOLD [ ]</div>
+                        <div class="rec-sub" id="recDiscardText">Discard [ ]</div>
+                        
+                        <div class="stat-grid">
+                            <div class="stat-box highlight">
+                                <span class="stat-label">EXPECTED VALUE (EV)</span>
+                                <span class="stat-val" id="recEvVal">0.00x</span>
+                                <span class="stat-desc">Per coin wagered</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">WIN PROBABILITY</span>
+                                <span class="stat-val" id="recWinRateVal">0.0%</span>
+                                <span class="stat-desc">Two Pair or better</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="stat-label">INITIAL HAND</span>
+                                <span class="stat-val sm" id="currentHandNameVal">High Card</span>
+                                <span class="stat-desc" id="currentHandPayoutVal">Payout: 0x</span>
+                            </div>
+                        </div>
+
+                        <!-- Probability Distribution Badges -->
+                        <div class="dist-container">
+                            <div class="dist-title">Outcome Probability Breakdown:</div>
+                            <div class="dist-chips" id="distChips"></div>
+                        </div>
+                    </div>
+
+                    <!-- Top Alternative Holds -->
+                    <div class="alternatives-wrapper">
+                        <div class="section-subtitle">
+                            <span>Top Alternative Hold Options (32 Evaluated)</span>
+                            <button id="toggleAllHoldsBtn" class="btn-text">Show All 32</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="holds-table" id="holdsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Cards Held</th>
+                                        <th>EV</th>
+                                        <th>Win %</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="holdsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Draw Resolution Box -->
+                    <div class="draw-resolution-box">
+                        <div class="resolution-header">
+                            <h3>Record Your Actual Draw Result</h3>
+                            <span class="help-tooltip" title="Input the replacement cards drawn on your screen to log the round and proceed to High & Low">ℹ️</span>
+                        </div>
+                        <p class="text-muted" id="drawInstructions">Select a draw slot, then tap any available card from the selector above to assign it (or auto-fill):</p>
+
+                        <div class="draw-inputs-container" id="drawInputsContainer">
+                            <!-- Populated with slots for discarded cards -->
+                        </div>
+
+                        <div class="draw-actions">
+                            <button id="autoFillDrawBtn" class="btn btn-secondary btn-sm" style="margin-right: 8px;">
+                                🎲 Auto-Fill Draw
+                            </button>
+                            <button id="finishRoundBtn" class="btn btn-primary">
+                                Complete Round & Log Result
+                            </button>
+                        </div>
+
+                        <!-- Result Display Banner -->
+                        <div id="roundResultBanner" class="result-banner hidden">
+                            <div class="result-title" id="roundResultTitle">Result: Full House (16x)!</div>
+                            <div class="result-desc" id="roundResultDesc">You qualified for High & Low Double Up Chance!</div>
+                            <div class="result-cta">
+                                <button id="goToHighLowBtn" class="btn btn-gold">
+                                    🎲 Proceed to High & Low Double Up ➔
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- PHASE 2: HIGH & LOW DOUBLE UP CHANCE -->
+            <!-- ========================================================= -->
+            <section id="phase2" class="tab-pane">
+                <div class="section-card highlow-card">
+                    <div class="hl-header">
+                        <h2>High & Low Double Up</h2>
+                        <div class="streak-badge">
+                            <span>Round: <strong id="hlRoundCount">1</strong></span>
+                            <span>Coins: <strong id="hlPotDisplay">100</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="hl-open-card-picker">
+                        <div class="picker-label">Select the Open Card on screen:</div>
+                        <div class="hl-ranks-grid" id="hlRanksGrid">
+                            <!-- 2 to A rank buttons -->
+                        </div>
+                    </div>
+
+                    <!-- Recommendation Display -->
+                    <div id="hlAdviceCard" class="hl-advice-card">
+                        <div class="hl-decision-hero">
+                            <div class="decision-direction" id="hlDirection">PICK HIGHER OR LOWER</div>
+                            <div class="decision-prob" id="hlProbBadge">Select a card</div>
+                        </div>
+
+                        <div class="risk-meter-container">
+                            <div class="risk-badge-box" id="hlRiskBadge">WAITING FOR CARD</div>
+                            <p class="hl-explanation" id="hlAdviceText">Tap the open card currently displayed on screen to get the exact odds.</p>
+                        </div>
+
+                        <!-- Probability Meters -->
+                        <div class="odds-breakdown">
+                            <div class="odds-row">
+                                <span class="odds-label">Higher Chance:</span>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill green" id="higherBar" style="width: 0%"></div>
+                                </div>
+                                <span class="odds-pct" id="higherPct">0%</span>
+                            </div>
+                            <div class="odds-row">
+                                <span class="odds-label">Lower Chance:</span>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill blue" id="lowerBar" style="width: 0%"></div>
+                                </div>
+                                <span class="odds-pct" id="lowerPct">0%</span>
+                            </div>
+                            <div class="odds-row">
+                                <span class="odds-label">Redraw Chance:</span>
+                                <div class="progress-bar-bg">
+                                    <div class="progress-bar-fill gold" id="redrawBar" style="width: 0%"></div>
+                                </div>
+                                <span class="odds-pct" id="redrawPct">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="hl-rule-note">
+                            💡 <strong>Rule Reminder:</strong> If the drawn card matches the open card's number, it is a <strong>free redraw</strong> (you do not lose). Cards rank: <strong>A &gt; K &gt; Q &gt; J &gt; 10 &gt; 9 &gt; 8 &gt; 7 &gt; 6 &gt; 5 &gt; 4 &gt; 3 &gt; 2</strong>.
+                        </div>
+
+                        <!-- Drawn Card (auto-computes win/loss & next move) -->
+                        <div class="hl-drawn-section">
+                            <div class="picker-label">Tap the card drawn on screen (auto-detects win/loss):</div>
+                            <div class="hl-ranks-grid hl-drawn-grid" id="hlDrawnGrid">
+                                <!-- 2 to A rank buttons -->
+                            </div>
+                        </div>
+
+                        <!-- Record Outcome -->
+                        <div class="hl-outcome-recorder">
+                            <div class="recorder-title">Or Choose Quick Action:</div>
+                            <div class="hl-outcome-buttons">
+                                <button class="btn btn-gold" id="hlCashoutBtn">💰 Collect / Cash Out</button>
+                                <button class="btn btn-success" id="hlWinBtn">🎉 I Won (Double)</button>
+                                <button class="btn btn-warning" id="hlRedrawBtn">🔄 Tie / Redraw</button>
+                                <button class="btn btn-danger" id="hlLoseBtn">💀 I Lost (Busted)</button>
+                            </div>
+                        </div>
+
+                        <!-- High & Low Live Step History -->
+                        <div class="hl-history-box" id="hlHistoryBox">
+                            <div class="hl-history-title">Session Steps:</div>
+                            <div class="hl-history-list" id="hlHistoryList">
+                                <div class="text-muted" style="font-size: 0.75rem;">No steps taken yet in this streak.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- LOGS & POST-MORTEM HISTORY -->
+            <!-- ========================================================= -->
+            <section id="logs" class="tab-pane">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Game Logs & Post-Mortem Diagnostics</h2>
+                        <div class="hand-actions">
+                            <button id="refreshLogsBtn" class="btn btn-secondary btn-sm">Refresh</button>
+                            <button id="clearLogsBtn" class="btn btn-danger btn-sm">Clear Logs</button>
+                        </div>
+                    </div>
+                    
+                    <p class="text-muted">
+                        All rounds are automatically persisted to <code>game_logs.txt</code> and <code>game_logs.jsonl</code>. When you tell the assistant <em>"hey check the logs"</em>, these records explain exactly what happened, whether a loss was normal draw variance or a misplay.
+                    </p>
+
+                    <div class="log-views-tabs">
+                        <button class="log-tab-btn active" data-logtab="cardsView">Cards Summary</button>
+                        <button class="log-tab-btn" data-logtab="rawTxtView">Raw Text Log</button>
+                    </div>
+
+                    <div id="cardsLogView" class="log-pane active">
+                        <div class="history-list" id="historyList">
+                            <div class="empty-state">No games logged yet. Play a round in 5-Card Draw to see the diagnostic breakdown!</div>
+                        </div>
+                    </div>
+
+                    <div id="rawTxtLogView" class="log-pane hidden">
+                        <pre class="raw-log-viewer" id="rawLogViewer">Loading logs...</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================= -->
+            <!-- PAYTABLE & RULES -->
+            <!-- ========================================================= -->
+            <section id="rules" class="tab-pane">
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2>Joker Poker Payout Table (53-Card Deck)</h2>
+                    </div>
+                    <div class="paytable-grid">
+                        <div class="pay-row highlight-royal">
+                            <span class="hand-name">Royal Flush</span>
+                            <span class="hand-desc">10-J-Q-K-A of same suit</span>
+                            <span class="multiplier">x200</span>
+                        </div>
+                        <div class="pay-row highlight-five">
+                            <span class="hand-name">Five of a Kind</span>
+                            <span class="hand-desc">4 of a kind + 1 Joker</span>
+                            <span class="multiplier">x140</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Straight Flush</span>
+                            <span class="hand-desc">5 suited consecutive cards</span>
+                            <span class="multiplier">x60</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Quads (Four of a Kind)</span>
+                            <span class="hand-desc">4 cards of same rank</span>
+                            <span class="multiplier">x30</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Full House</span>
+                            <span class="hand-desc">3 of a kind + Pair</span>
+                            <span class="multiplier">x16</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Flush</span>
+                            <span class="hand-desc">5 cards of same suit</span>
+                            <span class="multiplier">x14</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Straight</span>
+                            <span class="hand-desc">5 consecutive ranks (A-2-3-4-5 up to 10-J-Q-K-A)</span>
+                            <span class="multiplier">x8</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Trips (Three of a Kind)</span>
+                            <span class="hand-desc">3 cards of same rank</span>
+                            <span class="multiplier">x4</span>
+                        </div>
+                        <div class="pay-row">
+                            <span class="hand-name">Two Pair</span>
+                            <span class="hand-desc">2 different pairs (Qualifies for Double Up!)</span>
+                            <span class="multiplier">x4</span>
+                        </div>
+                        <div class="pay-row pay-zero">
+                            <span class="hand-name">One Pair</span>
+                            <span class="hand-desc">2 cards of same rank (Does NOT qualify)</span>
+                            <span class="multiplier">x0</span>
+                        </div>
+                        <div class="pay-row pay-zero">
+                            <span class="hand-name">High Card</span>
+                            <span class="hand-desc">No combination made</span>
+                            <span class="multiplier">x0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <!-- Interactive Toast Notification Banner -->
+        <div id="toastNotification" class="toast-notification hidden"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="solver.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
