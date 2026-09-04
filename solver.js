@@ -57,7 +57,7 @@
     }
 
     function cardFromStr(cardStr) {
-        if (!cardStr) return 0;
+        if (!cardStr) throw new Error('Empty card string.');
         let s = cardStr.trim().toUpperCase();
         if (s === 'JK' || s === 'JOKER' || s === 'WILD' || s === 'JOKER1') return 52;
 
@@ -422,6 +422,142 @@
         };
     }
 
+    function generateRoundExplanation(params) {
+        const {
+            initial_cards_str = [],
+            recommended_hold_indices = [],
+            recommended_ev = 0.0,
+            user_held_indices = [],
+            drawn_cards_str = [],
+            final_cards_str = [],
+            final_hand_name = 'High Card',
+            payout_multiplier = 0,
+            high_low_steps = [],
+            final_coins = null,
+            strategy = 'win_rate',
+            recommended_win_rate = null
+        } = params;
+
+        const explanationLines = [];
+
+        // Standalone High & Low session
+        if ((!initial_cards_str || initial_cards_str.length === 0) && high_low_steps && high_low_steps.length > 0) {
+            explanationLines.push("[Standalone High & Low Session]");
+            const lastStep = high_low_steps[high_low_steps.length - 1];
+            const lastRes = String(lastStep.result || '').toUpperCase();
+            if (lastRes.includes('LOSS') || lastRes.includes('BUST')) {
+                const openC = lastStep.open_card || '?';
+                const recC = lastStep.recommendation || '?';
+                const userC = lastStep.user_choice || recC;
+                const drawnC = lastStep.drawn_card || '?';
+                const winPct = (lastStep.win_prob || 0) * 100;
+                if (userC === recC) {
+                    explanationLines.push(
+                        `Outcome: BUSTED on Step ${high_low_steps.length} (0 coins). Diagnostic: Followed optimal advice (${recC}), ` +
+                        `but drew ${drawnC} against open card ${openC}. Unfavorable draw variance (${(100 - winPct).toFixed(1)}% underdog card).`
+                    );
+                } else {
+                    explanationLines.push(
+                        `Outcome: BUSTED on Step ${high_low_steps.length} (0 coins). Diagnostic: Player misplay. Picked ${userC} ` +
+                        `when recommended move was ${recC} (${winPct.toFixed(1)}% win rate).`
+                    );
+                }
+            } else {
+                explanationLines.push(
+                    `Outcome: CASHED OUT / WON (${final_coins !== null ? final_coins : 'positive'} coins across ${high_low_steps.length} steps). ` +
+                    `Diagnostic: Successfully navigated High & Low Double Up!`
+                );
+            }
+            return explanationLines.join(' ');
+        }
+
+        const sortedRec = recommended_hold_indices.slice().sort((a, b) => a - b);
+        const sortedUser = user_held_indices.slice().sort((a, b) => a - b);
+        const isOptimalPlay = (sortedRec.length === sortedUser.length && sortedRec.every((v, i) => v === sortedUser[i]));
+        const heldCardsStr = user_held_indices.map(i => initial_cards_str[i]);
+        const discardedStr = initial_cards_str.filter((_, i) => !user_held_indices.includes(i));
+
+        const outcomeType = (payout_multiplier > 0)
+            ? `WIN (${final_hand_name} paying ${payout_multiplier}x)`
+            : `LOSS (${final_hand_name} paying 0x)`;
+
+        explanationLines.push(`Phase 1 Outcome: ${outcomeType}.`);
+
+        let recStat;
+        if (recommended_win_rate !== null && recommended_win_rate !== undefined) {
+            recStat = (strategy !== 'ev')
+                ? `Win: ${(recommended_win_rate * 100).toFixed(1)}% | EV: ${recommended_ev.toFixed(2)}x`
+                : `EV: ${recommended_ev.toFixed(2)}x | Win: ${(recommended_win_rate * 100).toFixed(1)}%`;
+        } else {
+            recStat = `EV: ${recommended_ev.toFixed(2)}x`;
+        }
+
+        if (isOptimalPlay) {
+            explanationLines.push(`Strategy: Optimal move followed (Held: [${heldCardsStr.join(', ')}], ${recStat}).`);
+            if (payout_multiplier === 0) {
+                explanationLines.push(
+                    `Diagnostic: Unfavorable draw variance. Discarded [${discardedStr.join(', ')}] and drew [${drawn_cards_str.join(', ')}], ` +
+                    `which resulted in ${final_hand_name}. In draw poker, even the mathematically optimal hold has ` +
+                    `variance; this was an unlucky miss, not a misplay.`
+                );
+            } else {
+                explanationLines.push(
+                    `Diagnostic: Great result! The hold connected with drawn cards [${drawn_cards_str.join(', ')}] to complete ${final_hand_name}.`
+                );
+            }
+        } else {
+            const metricLabel = (strategy !== 'ev') ? 'win rate' : 'EV';
+            const recHeld = recommended_hold_indices.map(i => initial_cards_str[i]);
+            explanationLines.push(
+                `Strategy: Suboptimal play detected! Recommended holding [${recHeld.join(', ')}] (${recStat}), ` +
+                `but player held [${heldCardsStr.join(', ')}].`
+            );
+            if (payout_multiplier === 0) {
+                explanationLines.push(
+                    `Diagnostic: Player took a lower ${metricLabel} hold, discarded [${discardedStr.join(', ')}], and drew [${drawn_cards_str.join(', ')}] ` +
+                    `ending in ${final_hand_name} (0x).`
+                );
+            } else {
+                explanationLines.push(
+                    `Diagnostic: Player drew [${drawn_cards_str.join(', ')}] to make ${final_hand_name} (${payout_multiplier}x), ` +
+                    `though mathematically another hold was higher ${metricLabel} long-term.`
+                );
+            }
+        }
+
+        // Add High & Low post-mortem if played
+        if (high_low_steps && high_low_steps.length > 0) {
+            const lastStep = high_low_steps[high_low_steps.length - 1];
+            const lastRes = String(lastStep.result || '').toUpperCase();
+            if (lastRes.includes('LOSS') || lastRes.includes('BUST') || (final_coins !== null && final_coins === 0)) {
+                const openC = lastStep.open_card || '?';
+                const recC = lastStep.recommendation || '?';
+                const userC = lastStep.user_choice || recC;
+                const drawnC = lastStep.drawn_card || '?';
+                const winPct = (lastStep.win_prob || 0) * 100;
+                if (userC === recC) {
+                    explanationLines.push(
+                        `Phase 2 Double Up: Busted on Step ${high_low_steps.length} with open [${openC}] and drawn [${drawnC}]. ` +
+                        `Player followed optimal advice (${recC}); loss was due to draw variance (${(100 - winPct).toFixed(1)}% underdog card). ` +
+                        `Final coins: 0.`
+                    );
+                } else {
+                    explanationLines.push(
+                        `Phase 2 Double Up: Busted on Step ${high_low_steps.length}. Player misplay: picked ${userC} ` +
+                        `when recommended move was ${recC} (${winPct.toFixed(1)}% win rate). Final coins: 0.`
+                    );
+                }
+            } else if (lastRes.includes('CASHOUT') || lastRes.includes('WIN')) {
+                explanationLines.push(
+                    `Phase 2 Double Up: Successfully doubled up across ${high_low_steps.length} step(s)! ` +
+                    `Final collected coins: ${final_coins !== null ? final_coins : 'doubled pot'}.`
+                );
+            }
+        }
+
+        return explanationLines.join(' ');
+    }
+
     // Export to window
     window.PokerSolver = {
         RANKS,
@@ -433,7 +569,8 @@
         cardToDisplay,
         eval5Cards,
         analyzeAllHolds,
-        evaluateHighLow
+        evaluateHighLow,
+        generateRoundExplanation
     };
 
 })(typeof window !== 'undefined' ? window : this);

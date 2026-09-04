@@ -770,6 +770,29 @@
         roundData.timestamp_display = roundData.timestamp_display || new Date().toLocaleString();
         roundData.round_id = roundData.round_id || ('LOCAL-' + Date.now().toString().slice(-6));
 
+        if (!roundData.diagnostic && window.PokerSolver && window.PokerSolver.generateRoundExplanation) {
+            const initCards = roundData.initial_hand || [];
+            const recHold = roundData.recommended_hold || [];
+            const userHeld = roundData.user_held || [];
+            const recIndices = initCards.map((c, i) => recHold.includes(c) ? i : -1).filter(i => i >= 0);
+            const userIndices = initCards.map((c, i) => userHeld.includes(c) ? i : -1).filter(i => i >= 0);
+
+            roundData.diagnostic = window.PokerSolver.generateRoundExplanation({
+                initial_cards_str: initCards,
+                recommended_hold_indices: recIndices,
+                recommended_ev: roundData.recommended_ev || 0.0,
+                user_held_indices: userIndices,
+                drawn_cards_str: roundData.drawn_cards || [],
+                final_cards_str: roundData.final_hand || [],
+                final_hand_name: roundData.final_hand_name || 'High Card',
+                payout_multiplier: roundData.payout_multiplier || 0,
+                high_low_steps: roundData.high_low_steps || [],
+                final_coins: roundData.earned_coins,
+                strategy: roundData.strategy || 'win_rate',
+                recommended_win_rate: roundData.recommended_win_rate
+            });
+        }
+
         // Check if updating existing record
         const existingIdx = logs.findIndex(r => r.round_id === roundData.round_id);
         if (existingIdx >= 0) {

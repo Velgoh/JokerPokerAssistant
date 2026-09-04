@@ -4,6 +4,8 @@ A lightweight, high-performance mathematical assistant and real-time expected va
 
 The engine calculates mathematically optimal holds across all 32 possible combinations using a complete 53-card combinatorial model (52 standard cards + 1 Joker wildcard) and delivers exact probabilistic guidance for High-Low Double Up sessions.
 
+**[Initiate Web Module](https://velgoh.github.io/JokerPokerAssistant/)**
+
 ---
 
 ## Features

@@ -126,6 +126,30 @@ window.addEventListener('load', async () => {
         assert(Math.abs(jsWin.best_hold.win_rate - 0.3317) < 0.005, 'PokerSolver JS win_rate math matches Python');
         assert(Math.abs(jsEv.best_hold.ev - 2.9167) < 0.01, 'PokerSolver JS EV math matches Python');
 
+        // Test JS error handling on empty card
+        let threwOnEmpty = false;
+        try {
+            win.PokerSolver.cardFromStr('');
+        } catch (e) {
+            threwOnEmpty = true;
+        }
+        assert(threwOnEmpty, 'PokerSolver JS cardFromStr throws on empty string');
+
+        // Test JS generateRoundExplanation
+        const jsDiag = win.PokerSolver.generateRoundExplanation({
+            initial_cards_str: ['2H', '2D', '5H', '8H', 'KH'],
+            recommended_hold_indices: [0, 1],
+            recommended_ev: 1.70,
+            user_held_indices: [0, 1],
+            drawn_cards_str: ['2C', '9S', 'JD'],
+            final_cards_str: ['2H', '2D', '2C', '9S', 'JD'],
+            final_hand_name: 'Trips',
+            payout_multiplier: 4,
+            strategy: 'win_rate',
+            recommended_win_rate: 0.332
+        });
+        assert(typeof jsDiag === 'string' && jsDiag.includes('Strategy: Optimal move followed'), 'PokerSolver JS generateRoundExplanation works');
+
     } catch (err) {
         results.failed++;
         results.tests.push({ status: 'ERROR', name: 'Exception during test', details: err.toString() });
