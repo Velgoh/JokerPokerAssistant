@@ -1,4 +1,4 @@
-﻿# Joker Poker Assistant
+# Joker Poker Assistant
 
 A lightweight, high-performance mathematical assistant and real-time expected value (EV) solver designed for 5-Card Draw Joker Wild Video Poker and High-Low Double Up games.
 
