@@ -139,8 +139,23 @@
     // Health / Server Connectivity
     // -------------------------------------------------------------
     async function checkServerHealth() {
+        // If hosted on GitHub Pages or opened as a local file, immediately enter Standalone Mode
+        // and avoid triggering 404 network errors in the browser console.
+        const isStaticHost = window.location.protocol === 'file:' ||
+                             window.location.hostname.endsWith('github.io') ||
+                             (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
+
+        if (isStaticHost) {
+            state.serverOnline = false;
+            elements.serverStatusBadge.innerHTML = '<span class="status-dot offline"></span><span class="status-text">Standalone Mode</span>';
+            return;
+        }
+
         try {
-            const resp = await fetch('/api/health');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
+            const resp = await fetch('/api/health', { signal: controller.signal });
+            clearTimeout(timeoutId);
             if (resp.ok) {
                 const data = await resp.json();
                 if (data.status === 'ok') {

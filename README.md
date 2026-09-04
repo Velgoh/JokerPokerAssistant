@@ -75,19 +75,24 @@ Open `index.html` directly in any web browser (Chrome, Brave, Edge, Firefox). Th
 
 ```
 JokerPokerAssistant/
-├── index.html        # Clean cyber-arcade dark-mode interface
-├── styles.css        # UI styling, card visuals, and mobile layout
-├── app.js            # Frontend controller, card picker, and High-Low tracker
-├── solver.js         # In-browser client-side solver engine
-├── server.py         # Python HTTP server and REST endpoints (zero dependencies)
-├── solver.py         # Mathematical EV solver and hand evaluator
-├── logger.py         # Formatted text and JSONL round logger
-├── test_solver.py    # Unit tests for hand evaluations and EV calculation
-├── test_e2e.py       # Integration tests for server REST endpoints
-├── verify_browser.py # Browser DOM verification script
-├── run.bat           # Windows 1-click batch launcher
-├── LICENSE           # MIT License
-└── README.md         # Documentation
+├── .github/workflows/deploy.yml # GitHub Actions automated CI & Pages deploy
+├── index.html            # Clean cyber-arcade dark-mode interface
+├── styles.css            # UI styling, card visuals, and mobile layout
+├── app.js                # Frontend controller, card picker, and High-Low tracker
+├── solver.js             # In-browser client-side solver engine
+├── favicon.svg           # Modern SVG card favicon
+├── favicon.ico           # Legacy 32x32 browser icon
+├── .nojekyll             # Disables Jekyll for static file serving
+├── server.py             # Python HTTP server and REST endpoints (zero dependencies)
+├── solver.py             # Mathematical EV solver and hand evaluator
+├── logger.py             # Formatted text and JSONL round logger
+├── test_solver.py        # Unit tests for hand evaluations and EV calculation
+├── test_e2e.py           # Integration tests for server REST endpoints
+├── verify_browser.py     # Browser DOM verification script
+├── verify_pages_suite.py # Comprehensive headless browser & subpath test suite
+├── run.bat               # Windows 1-click batch launcher
+├── LICENSE               # MIT License
+└── README.md             # Documentation
 ```
 
 ---
