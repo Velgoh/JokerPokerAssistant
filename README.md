@@ -55,11 +55,20 @@ The game uses a 53-card deck: 52 standard playing cards (ranks 2 through Ace acr
 
 ---
 
-## How to Run Locally
+## How to Use
 
-1. Clone this repository or download the ZIP archive.
+### 1. Web App (Recommended)
+
+Open the application directly in your browser:
+**[Click here to use the app live!](https://velgoh.github.io/JokerPokerAssistant/)**
+
+No installation, download, or setup required.
+
+### 2. Offline / Local
+
+1. Download or clone this repository.
 2. Open `index.html` in your favorite web browser (Brave, Chrome, Firefox, Edge).
-3. No server, build tools, or dependencies required.
+3. No server, build tools, or network connection required.
 
 ---
 

@@ -77,11 +77,15 @@
         return `${RANKS[rank]}${SUITS[suit]}`;
     }
 
-    function cardToDisplay(cardId) {
+    function cardToDisplay(card) {
+        let cardId = card;
+        if (typeof card === 'string') {
+            cardId = cardFromStr(card);
+        }
         if (cardId === 52) return '🃏 Joker';
         const rank = cardId >> 2;
         const suit = cardId & 3;
-        return `${RANKS[rank]}${SUIT_SYMBOLS[SUITS[suit]]}`;
+        return `${RANKS[rank]}${SUIT_SYMBOLS[SUITS[suit]] || ''}`;
     }
 
     function countBits(n) {
@@ -94,7 +98,10 @@
     }
 
     function eval5Cards(cards) {
-        const c = cards.slice().sort((a, b) => a - b);
+        if (!cards || cards.length !== 5) {
+            throw new Error('Must provide exactly 5 cards to evaluate.');
+        }
+        const c = cards.map(x => typeof x === 'string' ? cardFromStr(x) : x).sort((a, b) => a - b);
 
         // Case 1: Joker is present
         if (c[4] === 52) {
@@ -186,11 +193,12 @@
     }
 
     function analyzeAllHolds(initialCards, strategy = 'win_rate') {
-        if (initialCards.length !== 5) {
+        if (!initialCards || initialCards.length !== 5) {
             throw new Error('Must provide exactly 5 cards.');
         }
 
-        const initialSet = new Set(initialCards);
+        const cards = initialCards.map(x => typeof x === 'string' ? cardFromStr(x) : x);
+        const initialSet = new Set(cards);
         const deck = [];
         for (let i = 0; i < 53; i++) {
             if (!initialSet.has(i)) deck.push(i);
@@ -209,7 +217,7 @@
             const holdIndicesList = combinations([0, 1, 2, 3, 4], holdCount);
             for (let h = 0; h < holdIndicesList.length; h++) {
                 const holdIndices = holdIndicesList[h];
-                const held = holdIndices.map(idx => initialCards[idx]);
+                const held = holdIndices.map(idx => cards[idx]);
                 const nDraw = 5 - holdCount;
 
                 let payoutSum = 0;
@@ -308,8 +316,8 @@
                     discard_indices: discardIndices,
                     held_cards: held.map(cardToStr),
                     held_display: held.map(cardToDisplay),
-                    discarded_cards: discardIndices.map(i => cardToStr(initialCards[i])),
-                    discarded_display: discardIndices.map(i => cardToDisplay(initialCards[i])),
+                    discarded_cards: discardIndices.map(i => cardToStr(cards[i])),
+                    discarded_display: discardIndices.map(i => cardToDisplay(cards[i])),
                     ev: Math.round(ev * 10000) / 10000,
                     win_rate: Math.round(winRate * 10000) / 10000,
                     total_combos: nCombos,
@@ -327,11 +335,11 @@
             allHolds.sort((a, b) => b.win_rate - a.win_rate || b.ev - a.ev);
         }
         const bestHold = allHolds[0];
-        const [currentPayout, currentHandName] = eval5Cards(initialCards);
+        const [currentPayout, currentHandName] = eval5Cards(cards);
 
         return {
-            initial_hand: initialCards.map(cardToStr),
-            initial_display: initialCards.map(cardToDisplay),
+            initial_hand: cards.map(cardToStr),
+            initial_display: cards.map(cardToDisplay),
             current_hand_name: currentHandName,
             current_payout: currentPayout,
             best_hold: bestHold,
@@ -474,6 +482,8 @@
         const isOptimalPlay = (sortedRec.length === sortedUser.length && sortedRec.every((v, i) => v === sortedUser[i]));
         const heldCardsStr = user_held_indices.map(i => initial_cards_str[i]);
         const discardedStr = initial_cards_str.filter((_, i) => !user_held_indices.includes(i));
+        const heldLabel = heldCardsStr.length > 0 ? heldCardsStr.join(', ') : 'Discard All';
+        const discardedLabel = discardedStr.length > 0 ? discardedStr.join(', ') : 'None';
 
         const outcomeType = (payout_multiplier > 0)
             ? `WIN (${final_hand_name} paying ${payout_multiplier}x)`
@@ -491,10 +501,10 @@
         }
 
         if (isOptimalPlay) {
-            explanationLines.push(`Strategy: Optimal move followed (Held: [${heldCardsStr.join(', ')}], ${recStat}).`);
+            explanationLines.push(`Strategy: Optimal move followed (Held: [${heldLabel}], ${recStat}).`);
             if (payout_multiplier === 0) {
                 explanationLines.push(
-                    `Diagnostic: Draw missed. Discarded [${discardedStr.join(', ')}] and drew [${drawn_cards_str.join(', ')}], ` +
+                    `Diagnostic: Draw missed. Discarded [${discardedLabel}] and drew [${drawn_cards_str.join(', ')}], ` +
                     `which resulted in ${final_hand_name}. In draw poker, even good holds miss ` +
                     `sometimes; this was an unlucky miss, not a misplay.`
                 );
@@ -506,13 +516,14 @@
         } else {
             const metricLabel = (strategy !== 'ev') ? 'win rate' : 'EV';
             const recHeld = recommended_hold_indices.map(i => initial_cards_str[i]);
+            const recLabel = recHeld.length > 0 ? recHeld.join(', ') : 'Discard All';
             explanationLines.push(
-                `Strategy: Suboptimal play detected! Recommended holding [${recHeld.join(', ')}] (${recStat}), ` +
-                `but player held [${heldCardsStr.join(', ')}].`
+                `Strategy: Suboptimal play detected! Recommended holding [${recLabel}] (${recStat}), ` +
+                `but player held [${heldLabel}].`
             );
             if (payout_multiplier === 0) {
                 explanationLines.push(
-                    `Diagnostic: Player took a lower ${metricLabel} hold, discarded [${discardedStr.join(', ')}], and drew [${drawn_cards_str.join(', ')}] ` +
+                    `Diagnostic: Player took a lower ${metricLabel} hold, discarded [${discardedLabel}], and drew [${drawn_cards_str.join(', ')}] ` +
                     `ending in ${final_hand_name} (0x).`
                 );
             } else {

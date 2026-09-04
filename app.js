@@ -6,15 +6,57 @@
 (function() {
     'use strict';
 
+    // Safe Storage Wrapper (handles private browsing, quota limits, and corrupted JSON)
+    const storage = {
+        _mem: {},
+        get(key, defaultVal = null) {
+            try {
+                const val = localStorage.getItem(key);
+                return val !== null ? val : defaultVal;
+            } catch (e) {
+                return (key in this._mem) ? this._mem[key] : defaultVal;
+            }
+        },
+        set(key, val) {
+            try {
+                localStorage.setItem(key, val);
+            } catch (e) {
+                this._mem[key] = val;
+            }
+        },
+        remove(key) {
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {}
+            delete this._mem[key];
+        },
+        getLogs() {
+            try {
+                const raw = this.get('poker_assistant_logs') || this.get('hololive_poker_logs') || '[]';
+                const parsed = JSON.parse(raw);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
+        },
+        saveLogs(logs) {
+            let sliceCount = 100;
+            while (sliceCount >= 10) {
+                try {
+                    const data = JSON.stringify(logs.slice(0, sliceCount));
+                    localStorage.setItem('poker_assistant_logs', data);
+                    return;
+                } catch (e) {
+                    sliceCount = Math.floor(sliceCount / 2);
+                }
+            }
+            this._mem['poker_assistant_logs'] = JSON.stringify(logs.slice(0, 20));
+        }
+    };
+
     // Application State
     const state = {
-        strategy: (() => {
-            try {
-                return localStorage.getItem('poker_assistant_strategy') || localStorage.getItem('hololive_poker_strategy') || 'win_rate';
-            } catch (e) {
-                return 'win_rate';
-            }
-        })(), // Default strategy: 'win_rate' (High & Low Qualifier) vs 'ev' (Max Reward)
+        strategy: storage.get('poker_assistant_strategy') || storage.get('hololive_poker_strategy') || 'win_rate', // Default strategy: 'win_rate' (High & Low Qualifier) vs 'ev' (Max Reward)
         hand: [null, null, null, null, null], // 5 card strings, e.g. '10H'
         currentAnalysis: null,
         userHoldOverrides: null, // Set of indices user manually held
@@ -611,6 +653,14 @@
     }
 
     function autoFillRemainingDraw() {
+        if (state.currentAnalysis) {
+            const holdIndices = state.userHoldOverrides || new Set(state.currentAnalysis.best_hold.hold_indices);
+            const discCount = [0, 1, 2, 3, 4].filter(i => !holdIndices.has(i)).length;
+            if (state.drawReplacements.length !== discCount) {
+                state.drawReplacements = new Array(discCount).fill(null);
+            }
+        }
+
         const inUse = new Set(state.hand.filter(Boolean).concat(state.drawReplacements.filter(Boolean)));
         const available = [];
         RANKS.forEach(r => SUITS.forEach(s => {
@@ -644,7 +694,7 @@
         const discardedIndices = [0, 1, 2, 3, 4].filter(i => !holdIndices.includes(i));
 
         // Auto-fill any remaining unfilled slots if user forgot to click
-        if (state.drawReplacements.some(c => !c)) {
+        if (state.drawReplacements.length !== discardedIndices.length || state.drawReplacements.some(c => !c)) {
             autoFillRemainingDraw();
         }
 
@@ -686,11 +736,25 @@
             elements.goToHighLowBtn.style.display = 'none';
         }
 
+        // Format display cards
+        const formatCard = (c) => {
+            if (!c) return '';
+            if (c === 'JK') return '🃏 JK';
+            const suit = c.slice(-1);
+            const rank = c.slice(0, -1);
+            return `${rank}${SUIT_SYMBOLS[suit] || suit}`;
+        };
+        const initialDisplay = state.hand.map(formatCard);
+        const finalDisplay = finalHand.map(formatCard);
+        const outcome = finalPayout > 0 ? `WIN (${finalHandName})` : `LOSS (${finalHandName})`;
+
         // Prepare log data
         const roundData = {
             round_id: roundId,
             strategy: state.strategy,
+            outcome: outcome,
             initial_hand: state.hand.slice(),
+            initial_display: initialDisplay,
             recommended_hold: state.currentAnalysis.best_hold.held_cards,
             recommended_ev: state.currentAnalysis.best_hold.ev,
             recommended_win_rate: state.currentAnalysis.best_hold.win_rate,
@@ -698,6 +762,7 @@
             user_held: holdIndices.map(i => state.hand[i]),
             drawn_cards: state.drawReplacements.filter(Boolean),
             final_hand: finalHand,
+            final_display: finalDisplay,
             final_hand_name: finalHandName,
             payout_multiplier: finalPayout,
             bet_coins: betCoins,
@@ -709,12 +774,15 @@
 
         // Initialize High & Low state for Phase 2
         state.highLow.roundId = roundId;
+        state.highLow.openCard = null;
+        state.highLow.currentAnalysis = null;
         state.highLow.initialPot = earnedCoins > 0 ? earnedCoins : 50;
         state.highLow.currentPot = state.highLow.initialPot;
         state.highLow.baseHandName = finalHandName;
         state.highLow.streak = 0;
         state.highLow.history = [];
         state.highLow.isFinished = false;
+        resetHighLowUI(true);
 
         // Save to localStorage
         saveRoundRecord(roundData);
@@ -727,7 +795,7 @@
     }
 
     function saveLogLocally(roundData) {
-        const logs = JSON.parse(localStorage.getItem('poker_assistant_logs') || localStorage.getItem('hololive_poker_logs') || '[]');
+        const logs = storage.getLogs();
         roundData.timestamp_display = roundData.timestamp_display || new Date().toLocaleString();
         roundData.round_id = roundData.round_id || ('LOCAL-' + Date.now().toString().slice(-6));
 
@@ -761,7 +829,7 @@
         } else {
             logs.unshift(roundData);
         }
-        localStorage.setItem('poker_assistant_logs', JSON.stringify(logs.slice(0, 100)));
+        storage.saveLogs(logs);
     }
 
     // -------------------------------------------------------------
@@ -925,6 +993,29 @@
         });
     }
 
+    function resetHighLowUI(preservePot = false) {
+        document.querySelectorAll('.hl-rank-btn').forEach(btn => btn.classList.remove('selected'));
+        if (elements.hlDirection) {
+            elements.hlDirection.className = 'decision-direction';
+            elements.hlDirection.textContent = 'PICK HIGHER OR LOWER';
+        }
+        if (elements.hlProbBadge) elements.hlProbBadge.textContent = 'Select an open card';
+        if (elements.hlRiskBadge) {
+            elements.hlRiskBadge.textContent = 'WAITING FOR CARD';
+            elements.hlRiskBadge.style.backgroundColor = '';
+        }
+        if (elements.hlAdviceText) elements.hlAdviceText.textContent = 'Tap the open card currently displayed on screen to get the exact odds.';
+        if (elements.higherBar) elements.higherBar.style.width = '0%';
+        if (elements.higherPct) elements.higherPct.textContent = '0%';
+        if (elements.lowerBar) elements.lowerBar.style.width = '0%';
+        if (elements.lowerPct) elements.lowerPct.textContent = '0%';
+        if (elements.redrawBar) elements.redrawBar.style.width = '0%';
+        if (elements.redrawPct) elements.redrawPct.textContent = '0%';
+        if (elements.hlRoundCount) elements.hlRoundCount.textContent = state.highLow.streak + 1;
+        if (elements.hlPotDisplay && !preservePot) elements.hlPotDisplay.textContent = state.highLow.currentPot;
+        renderHighLowStepList();
+    }
+
     async function syncHighLowLog(isFinal = false, finalOutcome = null) {
         const roundId = state.highLow.roundId || ('HL-' + Date.now().toString().slice(-8));
         state.highLow.roundId = roundId;
@@ -932,10 +1023,12 @@
         const roundData = state.lastCompletedRound ? Object.assign({}, state.lastCompletedRound) : {
             round_id: roundId,
             initial_hand: [],
+            initial_display: [],
             recommended_hold: [],
             user_held: [],
             drawn_cards: [],
             final_hand: [],
+            final_display: [],
             final_hand_name: state.highLow.baseHandName,
             payout_multiplier: 1,
             bet_coins: 50,
@@ -948,9 +1041,15 @@
 
         if (finalOutcome) {
             roundData.outcome = finalOutcome;
+        } else if (!roundData.outcome) {
+            roundData.outcome = `ACTIVE (Pot: ${state.highLow.currentPot}c)`;
         }
 
-        await saveRoundRecord(roundData);
+        // Invalidate cached diagnostic so generateRoundExplanation incorporates latest High & Low steps
+        delete roundData.diagnostic;
+
+        state.lastCompletedRound = roundData;
+        saveRoundRecord(roundData);
         loadRecentLogs();
     }
 
@@ -958,7 +1057,7 @@
     // Logs Viewer
     // -------------------------------------------------------------
     function loadRecentLogs() {
-        const logs = JSON.parse(localStorage.getItem('poker_assistant_logs') || localStorage.getItem('hololive_poker_logs') || '[]');
+        const logs = storage.getLogs();
 
         elements.historyList.innerHTML = '';
         if (logs.length === 0) {
@@ -968,12 +1067,21 @@
 
         logs.forEach(rec => {
             const card = document.createElement('div');
-            const outcomeStr = String(rec.outcome || 'LOSS').toUpperCase();
-            const isWin = outcomeStr.includes('WIN');
+            const fallbackOutcome = (rec.earned_coins > 0)
+                ? `WIN (${rec.final_hand_name || 'Hand'})`
+                : `LOSS (${rec.final_hand_name || 'High Card'})`;
+            const outcome = rec.outcome || fallbackOutcome;
+            const outcomeStr = String(outcome).toUpperCase();
+            const isWin = outcomeStr.includes('WIN') || (rec.earned_coins > 0);
             card.className = `history-card ${isWin ? 'win' : 'loss'}`;
 
-            const dealtDisplay = (rec.initial_display || rec.initial_hand || []).join(' ') || 'None (Direct HL)';
-            const finalDisplay = (rec.final_display || rec.final_hand || []).join(' ') || 'None';
+            const dealtDisplay = (rec.initial_display && rec.initial_display.length > 0)
+                ? rec.initial_display.join(' ')
+                : (rec.initial_hand && rec.initial_hand.length > 0 ? rec.initial_hand.join(' ') : 'None (Direct HL)');
+
+            const finalDisplay = (rec.final_display && rec.final_display.length > 0)
+                ? rec.final_display.join(' ')
+                : (rec.final_hand && rec.final_hand.length > 0 ? rec.final_hand.join(' ') : 'None');
 
             let hlSummaryHtml = '';
             if (rec.high_low_steps && rec.high_low_steps.length > 0) {
@@ -990,16 +1098,16 @@
 
             card.innerHTML = `
                 <div class="history-top">
-                    <span><strong>${rec.round_id}</strong> ${stratBadge} | ${rec.timestamp_display || rec.timestamp}</span>
+                    <span><strong>${rec.round_id}</strong> ${stratBadge} | ${rec.timestamp_display || rec.timestamp || 'Recent'}</span>
                     <span style="color: ${isWin ? 'var(--accent-green)' : 'var(--accent-red)'}; font-weight: 800;">
-                        ${rec.outcome}: ${rec.earned_coins} Coins
+                        ${outcome}: ${rec.earned_coins !== undefined ? rec.earned_coins : 0} Coins
                     </span>
                 </div>
                 <div class="history-hand-row">
                     <span style="color: var(--text-muted); font-size: 0.75rem;">Dealt:</span>
                     <span>${dealtDisplay}</span>
                     <span style="color: var(--text-muted); font-size: 0.75rem; margin-left: 8px;">Final:</span>
-                    <span>${finalDisplay} (${rec.final_hand_name})</span>
+                    <span>${finalDisplay}${rec.final_hand_name ? ` (${rec.final_hand_name})` : ''}</span>
                 </div>
                 ${hlSummaryHtml}
                 <div class="history-diagnostic">
@@ -1011,7 +1119,7 @@
     }
 
     function loadRawTextLog() {
-        const logs = JSON.parse(localStorage.getItem('poker_assistant_logs') || localStorage.getItem('hololive_poker_logs') || '[]');
+        const logs = storage.getLogs();
         if (logs.length === 0) {
             elements.rawLogViewer.textContent = 'No games logged yet. Complete a round to generate logs!';
             return;
@@ -1021,8 +1129,8 @@
 
     function clearAllLogs() {
         if (!confirm('Are you sure you want to clear all game logs?')) return;
-        localStorage.removeItem('poker_assistant_logs');
-        localStorage.removeItem('hololive_poker_logs');
+        storage.remove('poker_assistant_logs');
+        storage.remove('hololive_poker_logs');
         loadRecentLogs();
         loadRawTextLog();
         showToast('All logs cleared!', 'info');
@@ -1036,9 +1144,7 @@
         function setStrategy(strat) {
             if (state.strategy === strat) return;
             state.strategy = strat;
-            try {
-                localStorage.setItem('poker_assistant_strategy', strat);
-            } catch (e) {}
+            storage.set('poker_assistant_strategy', strat);
             updateStrategyUI();
             const filledCount = state.hand.filter(Boolean).length;
             if (filledCount === 5) {
