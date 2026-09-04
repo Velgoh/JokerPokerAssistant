@@ -1,7 +1,5 @@
 /**
- * Joker Poker & High-Low Solver Engine (JavaScript Client Version)
- * Provides 100% equivalent calculations for standalone in-browser operation.
- * Optimized for low-memory, high-speed combinatorial evaluation.
+ * Joker Poker & High-Low Solver (browser version)
  */
 
 (function(window) {

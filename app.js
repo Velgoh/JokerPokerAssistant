@@ -1,7 +1,6 @@
 /**
- * Joker Poker & High-Low Assistant
- * Frontend Controller with dual backend-API & client-side solver fallback.
- * Includes interactive card-tapping draw replacement and complete High & Low step tracking.
+ * Joker Poker & High-Low Assistant UI controller.
+ * Connects to the local server or runs in-browser calculations.
  */
 
 (function() {
@@ -420,7 +419,7 @@
             return;
         }
 
-        elements.handInstruction.textContent = 'Analyzing optimal hold strategy...';
+        elements.handInstruction.textContent = 'Calculating best hold...';
 
         try {
             let analysis;
@@ -709,7 +708,7 @@
             }
         } else {
             elements.roundResultTitle.textContent = `💀 Missed: ${finalHandName} (Payout: 0x)`;
-            elements.roundResultDesc.textContent = 'Unfavorable draw variance. Hand recorded to logs for post-mortem analysis.';
+            elements.roundResultDesc.textContent = 'Draw did not hit. Hand recorded to logs.';
             elements.goToHighLowBtn.style.display = 'none';
         }
 
@@ -1008,7 +1007,7 @@
     }
 
     // -------------------------------------------------------------
-    // Logs Viewer & Post-Mortem Diagnostics
+    // Logs Viewer
     // -------------------------------------------------------------
     async function loadRecentLogs() {
         let logs = [];

@@ -344,7 +344,7 @@
             <section id="logs" class="tab-pane">
                 <div class="section-card">
                     <div class="section-header">
-                        <h2>Game Logs & Post-Mortem Diagnostics</h2>
+                        <h2>Game Logs & History</h2>
                         <div class="hand-actions">
                             <button id="refreshLogsBtn" class="btn btn-secondary btn-sm">Refresh</button>
                             <button id="clearLogsBtn" class="btn btn-danger btn-sm">Clear Logs</button>
@@ -352,7 +352,7 @@
                     </div>
                     
                     <p class="text-muted">
-                        All rounds are automatically persisted to <code>game_logs.txt</code> and <code>game_logs.jsonl</code>. When you tell the assistant <em>"hey check the logs"</em>, these records explain exactly what happened, whether a loss was normal draw variance or a misplay.
+                        All rounds are saved to <code>game_logs.txt</code> and <code>game_logs.jsonl</code> to review hand outcomes, draw results, and play decisions.
                     </p>
 
                     <div class="log-views-tabs">
@@ -362,7 +362,7 @@
 
                     <div id="cardsLogView" class="log-pane active">
                         <div class="history-list" id="historyList">
-                            <div class="empty-state">No games logged yet. Play a round in 5-Card Draw to see the diagnostic breakdown!</div>
+                            <div class="empty-state">No games logged yet. Play a round in 5-Card Draw to view log history.</div>
                         </div>
                     </div>
 

@@ -1,6 +1,6 @@
 """
-Game Logging System for Joker Poker & High-Low Assistant
-Maintains synchronized structured JSONL (game_logs.jsonl) and human-readable (game_logs.txt) logs.
+Round logger for Joker Poker and High-Low Double Up.
+Writes JSONL (game_logs.jsonl) and formatted text (game_logs.txt).
 """
 
 import os
