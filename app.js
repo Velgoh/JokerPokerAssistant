@@ -1,6 +1,6 @@
 /**
  * Joker Poker & High-Low Assistant UI controller.
- * Connects to the local server or runs in-browser calculations.
+ * Client-side interface controller and state manager.
  */
 
 (function() {
@@ -8,7 +8,6 @@
 
     // Application State
     const state = {
-        serverOnline: false,
         strategy: (() => {
             try {
                 return localStorage.getItem('poker_assistant_strategy') || localStorage.getItem('hololive_poker_strategy') || 'win_rate';
@@ -131,44 +130,17 @@
         buildHighLowRanks();
         buildHighLowDrawnRanks();
         bindEvents();
-        await checkServerHealth();
+        initEngineStatus();
         loadRecentLogs();
     }
 
     // -------------------------------------------------------------
-    // Health / Server Connectivity
+    // Engine Status
     // -------------------------------------------------------------
-    async function checkServerHealth() {
-        // If hosted on GitHub Pages or opened as a local file, immediately enter Standalone Mode
-        // and avoid triggering 404 network errors in the browser console.
-        const isStaticHost = window.location.protocol === 'file:' ||
-                             window.location.hostname.endsWith('github.io') ||
-                             (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
-
-        if (isStaticHost) {
-            state.serverOnline = false;
-            elements.serverStatusBadge.innerHTML = '<span class="status-dot offline"></span><span class="status-text">Standalone Mode</span>';
-            return;
+    function initEngineStatus() {
+        if (elements.serverStatusBadge) {
+            elements.serverStatusBadge.innerHTML = '<span class="status-dot online"></span><span class="status-text" id="statusText">Engine Ready</span>';
         }
-
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1500);
-            const resp = await fetch('/api/health', { signal: controller.signal });
-            clearTimeout(timeoutId);
-            if (resp.ok) {
-                const data = await resp.json();
-                if (data.status === 'ok') {
-                    state.serverOnline = true;
-                    elements.serverStatusBadge.innerHTML = '<span class="status-dot online"></span><span class="status-text">Server Online</span>';
-                    return;
-                }
-            }
-        } catch (e) {
-            // Offline fallback
-        }
-        state.serverOnline = false;
-        elements.serverStatusBadge.innerHTML = '<span class="status-dot offline"></span><span class="status-text">Standalone Mode</span>';
     }
 
     // -------------------------------------------------------------
@@ -438,20 +410,7 @@
 
         try {
             let analysis;
-            if (state.serverOnline) {
-                const resp = await fetch('/api/evaluate', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        cards: filledCards,
-                        strategy: state.strategy
-                    })
-                });
-                const data = await resp.json();
-                if (data.status === 'ok') analysis = data.result;
-            }
-
-            if (!analysis && window.PokerSolver) {
+            if (window.PokerSolver) {
                 const cardIds = filledCards.map(window.PokerSolver.cardFromStr);
                 analysis = window.PokerSolver.analyzeAllHolds(cardIds, state.strategy);
             }
@@ -757,25 +716,13 @@
         state.highLow.history = [];
         state.highLow.isFinished = false;
 
-        // Log to server or localStorage
-        await saveRoundRecord(roundData);
+        // Save to localStorage
+        saveRoundRecord(roundData);
         loadRecentLogs();
         showToast('Round completed and saved to logs!', 'success');
     }
 
-    async function saveRoundRecord(roundData) {
-        if (state.serverOnline) {
-            try {
-                await fetch('/api/log', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(roundData)
-                });
-                return;
-            } catch (err) {
-                console.warn('Server log failed, saving locally:', err);
-            }
-        }
+    function saveRoundRecord(roundData) {
         saveLogLocally(roundData);
     }
 
@@ -832,21 +779,7 @@
         });
 
         let result;
-        if (state.serverOnline) {
-            try {
-                const resp = await fetch('/api/highlow', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({open_card: rank})
-                });
-                const data = await resp.json();
-                if (data.status === 'ok') result = data.result;
-            } catch (e) {
-                console.warn('High-low API call failed, using client solver.');
-            }
-        }
-
-        if (!result && window.PokerSolver) {
+        if (window.PokerSolver) {
             result = window.PokerSolver.evaluateHighLow(rank);
         }
 
@@ -1024,21 +957,8 @@
     // -------------------------------------------------------------
     // Logs Viewer
     // -------------------------------------------------------------
-    async function loadRecentLogs() {
-        let logs = [];
-        if (state.serverOnline) {
-            try {
-                const resp = await fetch('/api/logs');
-                const data = await resp.json();
-                if (data.status === 'ok') logs = data.logs;
-            } catch (e) {
-                console.warn('Failed to load server logs, reading local.');
-            }
-        }
-
-        if (logs.length === 0) {
-            logs = JSON.parse(localStorage.getItem('poker_assistant_logs') || localStorage.getItem('hololive_poker_logs') || '[]');
-        }
+    function loadRecentLogs() {
+        const logs = JSON.parse(localStorage.getItem('poker_assistant_logs') || localStorage.getItem('hololive_poker_logs') || '[]');
 
         elements.historyList.innerHTML = '';
         if (logs.length === 0) {
@@ -1090,35 +1010,17 @@
         });
     }
 
-    async function loadRawTextLog() {
-        elements.rawLogViewer.textContent = 'Loading game_logs.txt...';
-        if (state.serverOnline) {
-            try {
-                const resp = await fetch('/api/logs/raw');
-                const data = await resp.json();
-                if (data.status === 'ok') {
-                    elements.rawLogViewer.textContent = data.raw_text;
-                    return;
-                }
-            } catch (e) {
-                console.warn('Error fetching raw log:', e);
-            }
-        }
-
-        // Local fallback
+    function loadRawTextLog() {
         const logs = JSON.parse(localStorage.getItem('poker_assistant_logs') || localStorage.getItem('hololive_poker_logs') || '[]');
+        if (logs.length === 0) {
+            elements.rawLogViewer.textContent = 'No games logged yet. Complete a round to generate logs!';
+            return;
+        }
         elements.rawLogViewer.textContent = JSON.stringify(logs, null, 2);
     }
 
-    async function clearAllLogs() {
+    function clearAllLogs() {
         if (!confirm('Are you sure you want to clear all game logs?')) return;
-        if (state.serverOnline) {
-            try {
-                await fetch('/api/logs/clear', {method: 'POST'});
-            } catch (e) {
-                console.warn('Server clear failed.');
-            }
-        }
         localStorage.removeItem('poker_assistant_logs');
         localStorage.removeItem('hololive_poker_logs');
         loadRecentLogs();

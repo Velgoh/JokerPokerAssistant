@@ -4,18 +4,18 @@ A lightweight poker assistant and real-time expected value (EV) solver for 5-Car
 
 The solver evaluates holds across all 32 combinations using a 53-card deck (52 standard cards + 1 Joker) and calculates odds for High-Low Double Up rounds.
 
-[Launch Web App](https://velgoh.github.io/JokerPokerAssistant/)
+**[Click here to use the app live!](https://velgoh.github.io/JokerPokerAssistant/)**
 
 ---
 
 ## Features
 
 * Dual Optimization Modes: Switch between Max Win Rate (qualifying for Double Up with Two Pair or better) and Max Reward (EV) to maximize average payout multipliers.
-* 32-Hold Solver: Evaluates all 32 hold combinations in real time across the unseen 48-card deck.
+* 32-Hold Combinatorial Solver: Evaluates all 32 hold combinations in real time across the unseen 48-card deck.
 * Joker Wildcard Support: Handles 53-card deck evaluations, including Five of a Kind (140x) and wild Royal Flushes (200x).
-* High-Low Double Up Advisor: Computes win/loss probabilities and risk profiles for every rank (2 through Ace), with automatic free-redraw tie handling.
-* Standalone Browser or Python Server: Run directly in any modern browser via client-side JavaScript (`solver.js`) or with the lightweight Python standard library backend (`server.py`).
-* Diagnostic Round Logging: Automatically records hands and outcomes into formatted text (`game_logs.txt`) and JSON Lines (`game_logs.jsonl`) logs, showing whether a loss was an unlucky draw or a suboptimal hold.
+* High-Low Double Up Advisor: Computes win and loss probabilities for every rank (2 through Ace) with automatic free-redraw tie handling.
+* 100% Client-Side and Offline: Fully self-contained web app running in any browser with zero server, build, or network dependencies.
+* Diagnostic Round Logging: Automatically records hands, outcomes, and decision quality locally, showing whether a loss was an unlucky draw or a suboptimal hold.
 
 ---
 
@@ -57,17 +57,9 @@ The game uses a 53-card deck: 52 standard playing cards (ranks 2 through Ace acr
 
 ## How to Run Locally
 
-### Option 1: Double-Click Launcher (Windows)
-Double-click `run.bat` in the project root. It checks your Python environment, starts the local server, and opens the UI in your default browser.
-
-### Option 2: Python Command Line
-```powershell
-python server.py
-```
-Then open `http://127.0.0.1:5000` in your web browser. No external packages or `pip install` needed.
-
-### Option 3: Standalone Browser Mode (No Server)
-Open `index.html` directly in any web browser (Chrome, Brave, Edge, Firefox). The client solver (`solver.js`) runs all calculations locally with `localStorage` persistence.
+1. Clone this repository or download the ZIP archive.
+2. Open `index.html` in your favorite web browser (Brave, Chrome, Firefox, Edge).
+3. No server, build tools, or dependencies required.
 
 ---
 
@@ -75,22 +67,14 @@ Open `index.html` directly in any web browser (Chrome, Brave, Edge, Firefox). Th
 
 ```
 JokerPokerAssistant/
-├── .github/workflows/deploy.yml # GitHub Actions automated CI & Pages deploy
-├── index.html            # Clean cyber-arcade dark-mode interface
-├── styles.css            # UI styling, card visuals, and mobile layout
-├── app.js                # Frontend controller, card picker, and High-Low tracker
-├── solver.js             # In-browser client-side solver engine
-├── favicon.svg           # Modern SVG card favicon
-├── favicon.ico           # Legacy 32x32 browser icon
-├── .nojekyll             # Disables Jekyll for static file serving
-├── server.py             # Python HTTP server and REST endpoints (zero dependencies)
-├── solver.py             # Mathematical EV solver and hand evaluator
-├── logger.py             # Formatted text and JSONL round logger
-├── test_solver.py        # Unit tests for hand evaluations and EV calculation
-├── test_e2e.py           # Integration tests for server REST endpoints
-├── verify_browser.py     # Browser DOM verification script
-├── verify_pages_suite.py # Comprehensive headless browser & subpath test suite
-├── run.bat               # Windows 1-click batch launcher
+├── .github/workflows/deploy.yml # GitHub Actions automated Pages deployment
+├── index.html            # Dark arcade user interface
+├── styles.css            # Responsive layout and card styling
+├── app.js                # UI controller, card picker, and history manager
+├── solver.js             # Client-side 32-hold EV and High-Low engine
+├── favicon.svg           # Vector card icon
+├── favicon.ico           # Browser shortcut icon
+├── .nojekyll             # Static asset deployment bypass
 ├── LICENSE               # MIT License
 └── README.md             # Documentation
 ```

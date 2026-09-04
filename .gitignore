@@ -1,28 +1,25 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
+# Python and scratch test files
+*.py
 *.py[cod]
-*$py.class
+__pycache__/
+*.bat
 
-# C extensions
-*.so
+# Runtime gameplay logs and artifacts
+game_logs.*
+*.log
+*.tmp
 
-# Distribution / packaging
+# Virtual environments and builds
+.venv/
+venv/
+ENV/
+env/
 build/
 dist/
 *.egg-info/
 *.egg
 
-# Virtual environments
-.venv/
-venv/
-ENV/
-env/
-
-# Runtime gameplay logs & cache
-game_logs.txt
-game_logs.jsonl
-
-# IDE and Editor artifacts
+# IDE and editor artifacts
 .vscode/
 .idea/
 *.swp

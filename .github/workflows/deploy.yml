@@ -15,27 +15,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test:
-    name: Run Unit and Integration Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Run Solver Unit Tests
-        run: python test_solver.py
-
-      - name: Run Server Integration Tests
-        run: python test_e2e.py
-
   deploy:
     name: Deploy to GitHub Pages
-    needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
