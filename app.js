@@ -1068,7 +1068,7 @@
                 </div>
                 ${hlSummaryHtml}
                 <div class="history-diagnostic">
-                    💡 <strong>Post-Mortem:</strong> ${rec.diagnostic || 'Normal play.'}
+                    💡 <strong>Diagnostic:</strong> ${rec.diagnostic || 'Normal play.'}
                 </div>
             `;
             elements.historyList.appendChild(card);

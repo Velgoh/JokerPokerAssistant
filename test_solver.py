@@ -274,7 +274,7 @@ class TestPokerSolver(unittest.TestCase):
             payout_multiplier=0
         )
         self.assertIn('LOSS (High Card paying 0x)', exp_loss)
-        self.assertIn('Unfavorable draw variance', exp_loss)
+        self.assertIn('Draw missed', exp_loss)
 
         # Test strategy-aware explanation for Win Rate mode
         exp_win_sub = generate_round_explanation(
@@ -309,7 +309,7 @@ class TestPokerSolver(unittest.TestCase):
             'payout_multiplier': 0,
             'bet_coins': 50,
             'earned_coins': 0,
-            'diagnostic': 'Unlucky draw miss (variance).',
+            'diagnostic': 'Unlucky draw miss.',
             'high_low_steps': []
         }
         res = logger.log_round(round_data)

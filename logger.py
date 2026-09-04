@@ -101,7 +101,7 @@ def render_txt_entry(r: Dict[str, Any]) -> str:
         f"FINAL SUMMARY:",
         f"  Total Coins Won:  {r.get('earned_coins', 0)} coins",
         f"  Overall Outcome:  {r.get('outcome', 'UNKNOWN')}",
-        f"  Post-Mortem:      {r.get('diagnostic', '')}",
+        f"  Diagnostic:       {r.get('diagnostic', '')}",
         "=" * 80 + "\n\n"
     ])
     return '\n'.join(lines)

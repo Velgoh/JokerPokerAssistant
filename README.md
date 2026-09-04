@@ -15,7 +15,7 @@ The solver evaluates holds across all 32 combinations using a 53-card deck (52 s
 * Joker Wildcard Support: Handles 53-card deck evaluations, including Five of a Kind (140x) and wild Royal Flushes (200x).
 * High-Low Double Up Advisor: Computes win/loss probabilities and risk profiles for every rank (2 through Ace), with automatic free-redraw tie handling.
 * Standalone Browser or Python Server: Run directly in any modern browser via client-side JavaScript (`solver.js`) or with the lightweight Python standard library backend (`server.py`).
-* Diagnostic Round Logging: Automatically records hands and outcomes into formatted text (`game_logs.txt`) and JSON Lines (`game_logs.jsonl`) logs, showing whether a loss was draw variance or a suboptimal hold.
+* Diagnostic Round Logging: Automatically records hands and outcomes into formatted text (`game_logs.txt`) and JSON Lines (`game_logs.jsonl`) logs, showing whether a loss was an unlucky draw or a suboptimal hold.
 
 ---
 

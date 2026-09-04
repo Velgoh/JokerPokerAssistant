@@ -451,8 +451,8 @@
                 const winPct = (lastStep.win_prob || 0) * 100;
                 if (userC === recC) {
                     explanationLines.push(
-                        `Outcome: BUSTED on Step ${high_low_steps.length} (0 coins). Diagnostic: Followed optimal advice (${recC}), ` +
-                        `but drew ${drawnC} against open card ${openC}. Unfavorable draw variance (${(100 - winPct).toFixed(1)}% underdog card).`
+                        `Outcome: BUSTED on Step ${high_low_steps.length} (0 coins). Diagnostic: Followed recommended move (${recC}), ` +
+                        `but drew ${drawnC} against open card ${openC} (${(100 - winPct).toFixed(1)}% underdog card).`
                     );
                 } else {
                     explanationLines.push(
@@ -494,9 +494,9 @@
             explanationLines.push(`Strategy: Optimal move followed (Held: [${heldCardsStr.join(', ')}], ${recStat}).`);
             if (payout_multiplier === 0) {
                 explanationLines.push(
-                    `Diagnostic: Unfavorable draw variance. Discarded [${discardedStr.join(', ')}] and drew [${drawn_cards_str.join(', ')}], ` +
-                    `which resulted in ${final_hand_name}. In draw poker, even the mathematically optimal hold has ` +
-                    `variance; this was an unlucky miss, not a misplay.`
+                    `Diagnostic: Draw missed. Discarded [${discardedStr.join(', ')}] and drew [${drawn_cards_str.join(', ')}], ` +
+                    `which resulted in ${final_hand_name}. In draw poker, even good holds miss ` +
+                    `sometimes; this was an unlucky miss, not a misplay.`
                 );
             } else {
                 explanationLines.push(
@@ -523,7 +523,7 @@
             }
         }
 
-        // Add High & Low post-mortem if played
+        // Add High & Low round summary if played
         if (high_low_steps && high_low_steps.length > 0) {
             const lastStep = high_low_steps[high_low_steps.length - 1];
             const lastRes = String(lastStep.result || '').toUpperCase();
@@ -536,7 +536,7 @@
                 if (userC === recC) {
                     explanationLines.push(
                         `Phase 2 Double Up: Busted on Step ${high_low_steps.length} with open [${openC}] and drawn [${drawnC}]. ` +
-                        `Player followed optimal advice (${recC}); loss was due to draw variance (${(100 - winPct).toFixed(1)}% underdog card). ` +
+                        `Player followed recommended move (${recC}); loss was an unlucky draw (${(100 - winPct).toFixed(1)}% underdog card). ` +
                         `Final coins: 0.`
                     );
                 } else {

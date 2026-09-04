@@ -374,7 +374,7 @@ def generate_round_explanation(
     strategy: str = 'win_rate',
     recommended_win_rate: Optional[float] = None
 ) -> str:
-    """Generate a human-readable explanation of the round outcome and variance."""
+    """Generate a human-readable explanation of the round outcome."""
     explanation_lines = []
 
     # Standalone High & Low session
@@ -390,8 +390,8 @@ def generate_round_explanation(
             win_pct = last_step.get('win_prob', 0) * 100
             if user_c == rec_c:
                 explanation_lines.append(
-                    f"Outcome: BUSTED on Step {len(high_low_steps)} (0 coins). Diagnostic: Followed optimal advice ({rec_c}), "
-                    f"but drew {drawn_c} against open card {open_c}. Unfavorable draw variance ({100-win_pct:.1f}% underdog card)."
+                    f"Outcome: BUSTED on Step {len(high_low_steps)} (0 coins). Diagnostic: Followed recommended move ({rec_c}), "
+                    f"but drew {drawn_c} against open card {open_c} ({100-win_pct:.1f}% underdog card)."
                 )
             else:
                 explanation_lines.append(
@@ -425,9 +425,9 @@ def generate_round_explanation(
         explanation_lines.append(f"Strategy: Optimal move followed (Held: {held_cards_str}, {rec_stat}).")
         if payout_multiplier == 0:
             explanation_lines.append(
-                f"Diagnostic: Unfavorable draw variance. Discarded {discarded_str} and drew {drawn_cards_str}, "
-                f"which resulted in {final_hand_name}. In draw poker, even the mathematically optimal hold has "
-                f"variance; this was an unlucky miss, not a misplay."
+                f"Diagnostic: Draw missed. Discarded {discarded_str} and drew {drawn_cards_str}, "
+                f"which resulted in {final_hand_name}. In draw poker, even good holds miss "
+                f"sometimes; this was an unlucky miss, not a misplay."
             )
         else:
             explanation_lines.append(
@@ -451,7 +451,7 @@ def generate_round_explanation(
                 f"though mathematically another hold was higher {metric_label} long-term."
             )
 
-    # Add High & Low post-mortem if played
+    # Add High & Low round summary if played
     if high_low_steps:
         last_step = high_low_steps[-1]
         last_res = str(last_step.get('result', '')).upper()
@@ -464,7 +464,7 @@ def generate_round_explanation(
             if user_c == rec_c:
                 explanation_lines.append(
                     f"Phase 2 Double Up: Busted on Step {len(high_low_steps)} with open [{open_c}] and drawn [{drawn_c}]. "
-                    f"Player followed optimal advice ({rec_c}); loss was due to draw variance ({100-win_pct:.1f}% underdog card). "
+                    f"Player followed recommended move ({rec_c}); loss was an unlucky draw ({100-win_pct:.1f}% underdog card). "
                     f"Final coins: 0."
                 )
             else:
